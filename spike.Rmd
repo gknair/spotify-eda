@@ -1,0 +1,272 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(plotly)
+library(reshape2)
+library(DT)
+```
+
+```{r}
+data <- read.csv("data.csv") %>% filter(year <= 2020)
+data_w_genres <- read.csv("data_w_genres.csv")
+names(data)
+data <- data %>% 
+  select(id, name, artists, year, release_date, everything())
+```
+
+```{r}
+key_map <- rev(c("0" = "C", "1" = "C#", "2" = "D", "3" = "D#", "4" = "E", "5" = "F", "6" = "F#", "7" = "G", "8" = "G#", "9" = "A", "10" = "A#", "11" = "B"))
+
+data_prc <- data %>%
+  mutate(id = as.character(id)) %>%
+  #select(-id, -release_date) %>% # duplicate records for different ids and release date
+  distinct() %>%
+  # same song with same artist have multiple records with slight changes in audio featues and year
+  arrange(name, artists, year, release_date) %>% 
+  group_by(name, artists) %>%
+  filter(id==min(id)) %>%
+  #filter(popularity == max(popularity)) %>%
+  ungroup() %>%
+   mutate(popularity_category = ifelse(popularity >= 80, "80+", "<80"),
+          valence_bin = cut(valence, seq(0,1,0.1), right = FALSE),
+          duration_min = duration_ms/(1000*60),
+          mode_type = case_when(mode==0 ~ "minor",
+                                mode==1 ~ "major"),
+          key_str = as.character(key),
+          key_group = str_replace_all(key_str, key_map))
+```
+
+```{r}
+library(tidytext)
+library(wordcloud)
+common_words <- c(stopwords::stopwords(), stopwords::data_stopwords_smart$en, "-", "la", "na", "ti", "el", ".", "(feat.", "de", "version", "dont", "ii", "iii", "im", "der",   as.character(seq(0,2020,1)))
+song_words <- data_prc %>%
+  select(year, name) %>%
+  mutate(name_clean = tolower(str_replace_all(name, "['|']", "")),
+         name_clean = str_replace_all(name_clean, "[[:punct:]]", " "),
+         name_word_list = strsplit(name_clean, " ")) %>%
+  unnest_tokens(word, name_clean)
+
+test <- song_words %>%
+  filter(!word %in% common_words) %>%
+  group_by(word) %>%
+  summarise(n_songs = n_distinct(name)) %>%
+  ungroup() %>%
+  filter(n_songs > 1) %>%
+  arrange(desc(n_songs))
+
+test_wo_remaster <- test %>%
+  filter(!word %in% c("remastered", "remaster", "remasterizado", "feat", "mix", "op", "remix", "ñœ", "ñ", "ð", "ðºð", "ã", "ðµ", "å", "ñƒð"))
+```
+
+```{r}
+set.seed(100)
+wordcloud(words = test_wo_remaster %>%
+  head(100) %>% pull(word),
+  freq = test %>%
+  head(100) %>% pull(n_songs), random.order = F,  min.freq = 1, scale=c(4,0.5),
+  colors=brewer.pal(8, "Dark2"))
+```
+
+```{r}
+test_2020 <- song_words %>%
+  filter(!word %in% common_words, year==2020) %>%
+  group_by(word) %>%
+  summarise(n_songs = n_distinct(name)) %>%
+  ungroup() %>%
+  filter(n_songs > 1) %>%
+  arrange(desc(n_songs)) %>%
+  filter(!word %in% c("remastered", "remaster", "remasterizado", "feat", "mix", "op", "remix", "ñœ", "ñ", "ð", "ðºð", "ã", "ðµ", "å", "ñƒð"))
+```
+
+```{r}
+set.seed(100)
+wordcloud(words = test_2020 %>%
+  head(100) %>% pull(word),
+  freq = test %>%
+  head(100) %>% pull(n_songs), random.order = F,  min.freq = 1, scale=c(4,0.5),
+  colors=brewer.pal(8, "Dark2"))
+```
+
+
+```{r}
+test_year <- song_words %>%
+  filter(!word %in% common_words) %>%
+  filter(!word %in% c("remastered", "remaster", "remasterizado", "feat", "mix", "op", "remix", "ñœ", "ñ", "ð", "ðºð", "ã", "ðµ", "å", "ñƒð", "year", "years", "mixed", "original", "cut", "track", "edit")) %>%
+  group_by(year, word) %>%
+  summarise(n_songs = n_distinct(name)) %>%
+  ungroup() %>%
+  filter(n_songs > 1) %>%
+  arrange(desc(n_songs))
+
+
+test_year %>%
+  filter(year>=1990) %>%
+  group_by(year) %>%
+  filter(n_songs == max(n_songs)) %>%
+  arrange(year, n_songs) %>%
+  mutate(year_word = paste0(as.character(year), "-", word)) %>%
+  ggplot(aes(x = year_word, y = n_songs, fill = word)) +
+  geom_col() +
+  coord_flip()
+
+```
+
+
+```{r}
+scales_data_prc %>%
+  arrange(year, desc(popularity)) %>%
+  group_by(year) %>%
+  filter(row_number() <= 5) %>%
+  ungroup() %>%
+  pivot_longer(cols = c(acousticness, danceability, duration_ms, energy, instrumentalness, explicit, liveness, loudness, key, mode, speechiness, tempo, valence), names_to = "feature_type", values_to = "feature_val") %>%
+  filter(year %in% c("2016", "2017", "2018", "2019", "2020")) %>%
+  ggplot(aes(x = reorder(name, popularity), y = feature_val, fill = feature_type)) +
+  geom_col(position = position_dodge()) +
+  coord_flip() +
+  facet_grid(year~., scales = "free_y") + theme(axis.text.x = element_text(angle = 90))
+```
+
+
+```{r}
+scales_data_prc %>%
+  arrange(year, desc(popularity)) %>%
+  group_by(year) %>%
+  filter(row_number() <= 5) %>%
+  mutate(pop_rank = row_number()) %>%
+  ungroup() %>%
+  pivot_longer(cols = c(acousticness, danceability, duration_ms, energy, instrumentalness, explicit, liveness, loudness, key, mode, speechiness, tempo, valence), names_to = "feature_type", values_to = "feature_val") %>%
+  filter(year %in% c("2016", "2017", "2018", "2019", "2020")) %>%
+  ggplot(aes(x = pop_rank, y = feature_val, color = feature_type)) +
+  geom_point() +
+  coord_flip() +
+  scale_color_brewer(palette = "Paired") +
+  facet_grid(year~., scales = "free_y") + theme(axis.text.x = element_text(angle = 90))
+```
+
+
+```{r}
+data_w_genres %>%
+  #mutate(dance_bin = cut(danceability, seq(0,1,0.0001), right = FALSE)) %>%
+  #group_by(dance_bin) %>%
+  #summarise(mean_valence = mean(valence),
+  #       mean_dance = mean(danceability)) %>%
+  #ungroup() %>%
+  ggplot(aes(x = count, y = popularity)) +
+  geom_point(alpha = 0.2, size = 3)
+
+cor(data_w_genres$count, data_w_genres$popularity)
+```
+
+
+
+
+```{r}
+data_prc %>%
+  filter(year>=2010) %>%
+  ggplot(aes(x = as.factor(year), y = popularity)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+  scale_y_continuous(breaks = seq(0,100,20)) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+
+```{r}
+data_prc %>%
+  count(year, popularity_category) %>%
+  ggplot(aes(x = as.factor(year), y = n, fill = popularity_category, group = 1)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+data_prc %>%
+  mutate(instr_bin = cut(instrumentalness, seq(0,1,0.0001), right = FALSE)) %>%
+  group_by(instr_bin) %>%
+  summarise(mean_popularity = mean(popularity),
+         mean_instr = mean(instrumentalness)) %>%
+  ungroup() %>%
+  ggplot(aes(x = mean_instr, y = mean_popularity)) +
+  geom_point(alpha = 0.2, size = 3) +
+  geom_smooth(method = "lm")
+  #geom_point(alpha = 0.8, size = 3, color = "red", pch = 21, fill = "black")
+
+  data_prc %>%
+    select(loudness) %>% pull() %>% min()
+```
+
+# tracks over years
+# popularity density over years
+# relation of avg popularity and number of tracks per artist
+# top 10 most productive artists by year and popularity
+# top 10 most popular artist by year and productivity
+# feature density distribution for all years
+# which features are more important for popoularity
+ - correlation matrix?
+# word cloud of track name
+
+
+
+
+<!-- ```{r} -->
+<!-- genre_group <- c("pop","indie","rock","metal","rap","jazz", "classical") -->
+<!-- data_w_genres %>% -->
+<!--   mutate(genre_group = case_when(grepl("pop", genres) ~ "pop", -->
+<!--                                 grepl("indie", genres) ~ "indie", -->
+<!--                                 grepl("rock", genres) ~ "rock", -->
+<!--                                 grepl("metal", genres) ~ "metal", -->
+<!--                                 grepl("rap", genres) ~ "rap", -->
+<!--                                 grepl("jazz", genres) ~ "jazz", -->
+<!--                                 grepl("classical", genres) ~ "classical", -->
+<!--                                 grepl("tango", genres) ~ "tango", -->
+<!--                                 TRUE ~ "other")) %>% -->
+<!--   arrange(desc(count)) %>% -->
+<!--   head(30) %>% -->
+<!--   ggplot(aes(x = reorder(artists, count), y = count, fill = genre_group)) + -->
+<!--   geom_col() + -->
+<!--   coord_flip() -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- data_w_genres %>% -->
+<!--   mutate(genre_group = case_when(grepl("pop", genres) ~ "pop", -->
+<!--                                 grepl("indie", genres) ~ "indie", -->
+<!--                                 grepl("rock", genres) ~ "rock", -->
+<!--                                 grepl("metal", genres) ~ "metal", -->
+<!--                                 grepl("rap", genres) ~ "rap", -->
+<!--                                 grepl("jazz", genres) ~ "jazz", -->
+<!--                                 grepl("classical", genres) ~ "classical", -->
+<!--                                 grepl("tango", genres) ~ "tango", -->
+<!--                                 TRUE ~ "other")) %>% -->
+<!--   arrange(desc(count)) %>% -->
+<!--   head(30) %>% -->
+<!--   ggplot(aes(x = reorder(artists, count), y = popularity, fill = genre_group)) + -->
+<!--   geom_col() + -->
+<!--   coord_flip() -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- data_w_genres %>% -->
+<!--   mutate(genre_group = case_when(grepl("pop", genres) ~ "pop", -->
+<!--                                 grepl("indie", genres) ~ "indie", -->
+<!--                                 grepl("rock", genres) ~ "rock", -->
+<!--                                 grepl("metal", genres) ~ "metal", -->
+<!--                                 grepl("rap", genres) ~ "rap", -->
+<!--                                 grepl("jazz", genres) ~ "jazz", -->
+<!--                                 grepl("classical", genres) ~ "classical", -->
+<!--                                 grepl("tango", genres) ~ "tango", -->
+<!--                                 TRUE ~ "other")) %>% -->
+<!--   arrange(desc(popularity)) %>% -->
+<!--   head(30) %>% -->
+<!--   ggplot(aes(x = reorder(artists, popularity), y = popularity, fill = genre_group)) + -->
+<!--   geom_col() + -->
+<!--   coord_flip() -->
+<!-- ``` -->
