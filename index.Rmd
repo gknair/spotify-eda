@@ -29,20 +29,32 @@ data <- data %>%
   select(id, name, artists, year, release_date, everything())
 ```
 
-Terms like  **Data is the new _____**, substituted with **gold/oil/currency/whatever is the most precious asset to have for you**, are becoming quite prevalent in our conversations and news feed. As per the [statista reoprt]([https://www.statista.com/statistics/871513/worldwide-data-created/) released in May 2020, 2021 is expected to create, capture, copy, and consume 74 zettabytes (1 zettabyte = trillion gigabytes) of data worldwide. This number is projected to almost double in just 3 years by 2024.
+Catchphrases like  **Data is the new _____**, substituted with **gold/oil/currency**, are becoming quite prevalent in our day to day conversations and news feed. As per the [statista reoprt]([https://www.statista.com/statistics/871513/worldwide-data-created/) released in May 2020, 2021 is expected to create, capture, copy, and consume 74 zettabytes (1 zettabyte = trillion gigabytes) of data worldwide. This number is projected to almost double in just 3 years by 2024.
 
 ```{r , echo=FALSE, fig.cap="Statista report on data creation/consumption", out.width = '100%'}
 knitr::include_graphics("./imgs/statista-data-consumption.JPG")
 ```
 
+The most fascinating thing about having data accessible on any subject ranging from the most absurd ones (squirrel census in Central Park) to the most arcane ones (dermatoscopic images) and sometimes to the most personal ones (Whatsapp chats/location history) is, that you can develop familiarity with an unfamiliar subject in the most organic way by analyzing them. Sometimes, you also stumble upon incredible insights despite having decent understanding of the subject. 
 
-The [episode data detective of the cautionary tales podcast by Tim Hartford](https://podcasts.google.com/feed/aHR0cHM6Ly9mZWVkcy5tZWdhcGhvbmUuZm0vY2F1dGlvbmFyeXRhbGVz/episode/NTUxMTZjNjQtNWYxOC0xMWViLTkzMzEtMGI0MWJmZTYzZDE2?sa=X&ved=0CAUQkfYCahcKEwiY7_aA7sfvAhUAAAAAHQAAAAAQAQ) aptly mentions that every human being is moderately curious or moderately incurious. It further suggests that there is no such thing as _a curious person_. Curiosity is a cultivated trait and can be infused or diffused by context and subject. 
+With that said, you need to be careful about understanding the definition of data fields, the quality of the data and how you analyze/summarise it to not derive incorrect conclusions. It is equally important to have a fair idea on the questions you hope to answer through your data analysis once you know the attributes of data. Otherwise, you can get exhausted by the ways you can slice, summarise, and visualize the data and can possibly drown yourself in the vastness of it.  
 
-Being surrounded by mountains and mountains of data can ignite curiosity even in the most bored minds like mine. Despite being an avid and yet not bored listner of Indian classical and pop music, I have decided to explore the wilderness of Western music (for the lack of a better term) using Spotify data in hope to learn a few things on the way. 
+Many organizations perform exploratory data analyses for two main purposes. 
 
-# Data at perusal
+1. to enable stakeholders take data driven decisions 
+2. to understand the interplays of various data fields that helps develop and validate better prediction models
 
-I have obtained all Spotify tracks for US market ranging from 1920 to 2020 (100 years!) from a [Kaggle dataset](https://www.kaggle.com/yamaerenay/spotify-dataset-19212020-160k-tracks).  Each row ideally represents a track, with a Spotify track id, artist's name, track's name, and a bunch of audio features associated with the track. A sample of the data from year 2020 is shown below.
+My purpose for today's exploratory data analysis is to understand
+
+* how audio tracks on Spotify evolved over a century?
+* what are the features associated with a particular track and their impact on popularity of a track?
+* who's hot on Spotify?
+
+Let's first get an overview of Spotify data and assess the quality of the same. 
+
+# Overview of Spotify data
+
+I have obtained all Spotify tracks ranging from 1920 to 2020 (100 years!) from a [Kaggle dataset](https://www.kaggle.com/yamaerenay/spotify-dataset-19212020-160k-tracks).  Each row ideally represents a track, with a Spotify track id, artist's name, track's name, and a bunch of audio features associated with the track. A sample of the data from year 2020 is shown below.
 
 
 ```{r}
@@ -59,15 +71,14 @@ datatable(
 ```
 
 
-Before our curiosity nudges us to look for data related to our favorite artists, let's first understand the data. 
 
 ## Data types
 
-We have few categorical fields like `id`, `name`, `artists`, `release_date`, and `key` that can take finite number of values. We also have many numerical fields, most from the audio features, like `acousticness`, `danceability` etc., that can take infinite number of values within a defined range. Notice that we have two fields - `mode` and `explicit` that are logical/binary in nature. 
+We have few categorical fields in the data like `id`, `name`, `artists`, `release_date`, and `key` that can take finite number of values. We also have many numerical fields, mostly the audio features, like `acousticness`, `danceability` etc., that can take infinite number of values within a defined range. Notice, that two fields - `mode` and `explicit` - are logical/binary in nature. 
 
 ## Data definitions
 
-The table below has the definitons of all the fields including the definitions of various audio features. 
+We now need to understand the definition of each field to then use them for our analyses. More specifically, I was interested to understand some definitions of audio features like `loudness`, `energy`, `danceability`, `popularity`, etc. I was also the most intrigued by the definition of `popularity` measure, which is derived from a Spotify algorithm that relies on number of plays a track has had and the recency of those plays.  The table below has the definitons of all the fields. 
 
 ```{r}
 data_dict <- tibble("field" = names(data),
@@ -102,11 +113,11 @@ datatable(
 ```
 
 
-After performing few validation checks on the ideal state of this data (one record per one song), certain issues appeared with this data in terms of how it is curated. A track can be added to Spotify as a single entry and/or as part of an album with an individual id for each occurrence. The same track can also be added multiple times with different release dates. As per the their documentation, this used to be the case more often in the older years. With the implementation of  "track linking" in the most recent years, such duplicative pattern is less seen in the data. However, we need to overcome this issue in the data, otherwise we would be double counting the statistics which could be misleading.
+After performing a validation check on the ideal state of this data (one record per track), certain issues appeared in terms of how it is curated. There were few records where all the fields were duplicated multiple times. Moreover, a track can be added to Spotify as a single entry and/or as a part of an album with separate ids for each addition. The same track can also be added multiple times with different release dates under different licenses and in different markets. Therefore, we need to overcome this issue in the data to not double count the statistics which can mislead our conclusions.
 
-One way to tackle this issue is to keep the track, a combination of an artist and a track name, that was released the earliest when it appears multiple times. For example, **Rain On Me (with Ariana Grande)** track has two entries in the data with release dates of `r format(as.Date("2020-05-22"), "%b %d %Y")` and `r format(as.Date("2020-05-29"), "%b %d %Y")` from which we would choose the one released on `r format(as.Date("2020-05-22"), "%b %d %Y")`. By following this method, we will not be favoring the popularity measure (correlated with recent number of plays) for a track and an artist that could have tracks released across various years with varying popularity measures. 
+One way to tackle this issue is to define the track as a combination of an artist and a track name and keep the one that was released the earliest. For example, **Rain On Me (with Ariana Grande)** track has two entries in the data with release dates of `r format(as.Date("2020-05-22"), "%b %d %Y")` and `r format(as.Date("2020-05-29"), "%b %d %Y")` from which we would choose the one released on `r format(as.Date("2020-05-22"), "%b %d %Y")`. By following this logic, we will not be favoring the popularity measure (correlated with recent number of plays) for any track that could have same track + artist combination released across various years with varying popularity measures. 
 
-After cleaning the data, we have total of **158,581** tracks a reduction of ~14,000 records with duplicate entries. 
+After cleaning the data, we now have total of **158,581** tracks - a reduction of ~14,000 records with duplicate entries. 
 
 ```{r}
 datatable(
@@ -114,7 +125,8 @@ datatable(
     filter(name=="Rain On Me (with Ariana Grande)"),
   rownames = FALSE,
   options = list(dom = 'tp',
-                 pageLength = 5)
+                 pageLength = 5, 
+                 scrollX = TRUE)
   )
 ```
 
@@ -142,13 +154,13 @@ data_prc <- data %>%
 ```
 
 
-# Year over year trends
+# Evolution of Spotify music
 
-We now have a fair understanding of the data and have processed the same appropriately. It's time to observe some trends then.
+We have a fair understanding of the data and have processed it appropriately. Let's observe some trends!
 
-## How many tracks and associated artists are released and each year on Spotify?
+## Tracks and artists over years on Spotify
 
-The number of tracks released on Spotify fluctuates a lot between 1920 and 1950. Since 1950, around 2,000 tracks were released until 1999. The number dropped by almost half in 2000-2001 and is steadily increasing since 2004.  Interestingly, the number of tracks increased by 1.5 in 2020. I am reigning my temptation to associate reasons with the high level fluctuations in number of tracks over years since Spotify is not the most exhaustive platform to host all the music that gets created. However, the trends are certainly intriguing and demands further understanding and investigation of the data.   
+The number of tracks released on Spotify fluctuates a lot between 1920 and 1950, probably becuase of the limited capacity for production. Since 1950, around 2,000 tracks were released consistently until 1999. The number dropped by almost a half in 2000-2001 and is steadily increasing since 2004.  Interestingly, the number of tracks shot up by 1.5 in 2020. I am reigning my temptation to associate reasons with the high level fluctuations in number of tracks over years since Spotify has not been the most exhaustive platform to host all the music that gets created across the century. However, the trends are certainly intriguing and demands further understanding and investigation of the data.   
 
 The number of unique artists who released tracks by years has an increasing trend across all years, including the years when number of tracks were stable around 2,000.    
 
@@ -174,9 +186,9 @@ ggplotly(
 
 ```
 
-## How has the popularity measure changed over time on Spotify?
+## Popularity over years on Spotify
 
-The mean popularity has gone down since year 2000 while the maximum popularity in a year has been on the rise suggesting that despite having more tracks in the recent years, not all gained equally higher popularity. 2020 recorded the highest maximum popularity score of 96 out of 100. This also could be partly because of the method of popularity calculation which weighs more on number of plays in the recent time period.  
+The mean popularity has gone down since 2000 while the maximum popularity has been on the rise since 2000 suggesting that despite having more tracks in the recent years, not all gained higher popularity. 2020 recorded the highest maximum popularity score of 96 out of 100. This also could be partly because of the method of popularity calculation which weighs more on number of plays from the recent time period. Therefore, making the tracks released in the recent years more popular.   
 
 ```{r}
 ggplotly(
@@ -199,13 +211,16 @@ ggplotly(
 ```
 
 
-### What is the anatomy of the most popular track(s)? 
+### Anatomy of the most popular track(s)
 
-There are two most popular tracks released in 2020 to gain popularity of 96 - **positions** by _Ariana Grande_ and **Mood (feat. iann dior)** by _24kGoldn_. 
+Who does not enjoy popularity? Let's see if we can find the secret behind the most popular track on Spotify. 
 
-Both the tracks are on the higher end of valence (happy mood), energy, and danceability. Both have explicit content present and have 0 instrumentalness. Positions is set in a major mode while the other is set in a minor mode. 
+There are two most popular tracks released in 2020 that gained popularity of 96 - **positions** by _Ariana Grande_ and **Mood (feat. iann dior)** by _24kGoldn_. 
 
-Having high energy and danceability is the key to higher popularity? We will find out soon in a next segment. But, before that, let's check out the trends in audio features over 100 years. To able to compare them on a standard scale, we would normalize the numeric values of these features.  
+Both the tracks are on the higher end of valence (happy mood), energy, and danceability. Both have explicit content present and have 0 instrumentalness. **Positions** is set in a major mode while the other is set in a minor mode. 
+
+Can we conclude from these two tracks that having high energy, danceability, and explicit content is the key to higher popularity? Probably we analyze further. 
+
  
 ```{r fig.dim=c(10,10)}
 audio_features <- c("acousticness", "danceability", "duration_min", "energy", "instrumentalness", "explicit", "liveness", "loudness", "key", "mode", "speechiness", "tempo", "valence")
@@ -222,11 +237,12 @@ ggplotly(
 
 ```
 
-## How have the audio features changed over years?
 
-The trend in average value of audio features is shown as following. 
+We will investigate the recipe of popularity further in a little bit. Before that, let's check out the trends in audio features over 100 years. You might have noticed that all the audio features have different scales. For example, loudness ranges from 0 (most loud) to -60 (least loud) while popularity ranges from 0 to 100. Therefore, to compare them on a standard scale, we need to normalize their numerical values between a standard range, say 0 to 1. 
 
-The average acousticness has drastically reduced over the years with increasing invention of electronic instruments. The average energy of tracks has drmamatically increased over the years, almost at the same time acousticness started reducing. Could there be a correlation there? 
+## Evolution of audio features
+
+The average acousticness has drastically reduced over the years, probably because of the inventions of more electronic instruments. The average energy of tracks has drmamatically increased over the years, almost at the same time acousticness started reducing. Could there be a correlation there? 
 
 The average loudness of the tracks has slightly increased. The average valence has slightly decreased on the other hand. Instrumentalness was more present in earlier years although there has been an uptick in the recent years for the same. 
 
@@ -256,11 +272,11 @@ ggplotly(
 ```
 
 
-Below are the trends for audio features that are either logical or categorical for which taking an average would not have been appropriate. 
+We need to analyze trends for audio features that are either logical or categorical separately becuase taking an average for them would not be appropriate. 
 
 ### Major/minor mode
 
-There have been more tracks set in minor mode in recent years. Generally speaking, minor mode tracks tend to have sad/gloomhy mood. This is in line with decreasing valence in the recent years.  
+There has been more tracks set in minor mode in recent years. Generally speaking, minor mode tracks tend to have sad/gloomhy mood. This is in alignmnet with decreasing valence in the recent years.  
 
 ```{r}
 ggplotly(
@@ -277,9 +293,9 @@ ggplotly(
 ```
 
 
-### explicit content
+### Explicit content
 
-Tracks with explicit conent has been increasing since 1980s. 
+Percentage of tracks with explicit conent has been increasing since 1980s with two peaks around 2000 and 2018. 
 
 ```{r}
 ggplotly(
@@ -309,9 +325,9 @@ ggplotly(
 <!--   scale_x_continuous(breaks = seq(1910, 2020, 10)) -->
 <!-- ``` -->
 
-### duration
+### Duration of tracks
 
-Average duarion of the tracks in minutes has been fluctuating between 4 to 4.5 minutes since 1970. Spotify has collected **`r round(sum(data_prc$duration_min)/(60*24*365), 2)`** years of tracks over 100 years!! If you would rather not spend that much time listening to each and every song but dance on the most "danceability" song, get wild listening to **Funky Cold Medina** by _Tone-Loc_. 
+Average duarion of the tracks in minutes has been fluctuating between 4 to 4.5 minutes since 1970. Spotify has collected **`r round(sum(data_prc$duration_min)/(60*24*365), 2)`** years worth of tracks over 100 years!! If you would rather not spend that much time listening to each and every song but dance on the most "danceable" song, get wild listening to **Funky Cold Medina** by _Tone-Loc_. 
 
 ```{r}
 ggplotly(
@@ -329,17 +345,18 @@ ggplotly(
 
 # Correlation of audio features
 
-Plotting the trends of audio features over years invoked some curiosity around if these features are inter related and if so, how? 
+Plotting the trends of audio features over years and analyzing audio features of the most popular tracks invoked some curiosity around the correlation of these features among themselves and with the popularity measure. 
 
-Below graph shows corrleation of each audio feature with other audio features. Note that mode and key are excluded from this matrix as they are more like categorical variables.  Colors closer to orange showcase higher positive correlation, colors closer to purple showcase neutral correlation, while colors closer to dark blue show negative correlation. 
+Below graph shows corrleation of each audio feature with other audio features. Note that mode and key are excluded from this matrix as they are kind of categorical variables.  Colors closer to orange showcase higher positive correlation, colors closer to purple showcase no correlation, while colors closer to dark blue show negative correlation.  It is quite trivial to point out that each audio feature is correlated to itself with 100% positive correlation. 
 
-It is quite trivial to point out that each audio feature is correlated to itself with 100% positive correlation. Energy is negatively correlated with acousticness which aligns with what we observed in the trends over years earlier. 
+Energy is negatively correlated with acousticness which aligns with what we observed in the trends earlier. Energy increased at the same time acousticness decreased. 
 
-Popularity is negatively correlated with acousticness and positively correlated with energy. 
-
-Loudness is highly correlated with energy which makes loudness negatively correlated with acousticness too. 
+Loudness is highly correlated with energy which makes loudness negatively correlated with acousticness as well. 
 
 Danceability is positively correlated with valence of the track, not surprising!
+
+Popularity is negatively correlated with acousticness, instrumentalness, and speechiness while positively correlated with loudness and energy. 
+
 
 ```{r}
 ggplotly(
@@ -354,8 +371,19 @@ ggplotly(
 
 ```
 
+Another intersting factor affecting popularity is presence of explicit content in tracks. Since it is a logical variable, plotting the popularity distribution by each value of `explicit` field is more appropriate to find out its impact on popularity.  The violin chart below shows the density of popularity distribution in the vertical direction while the horizontal lines show 25th, 50th, and 75th percentile of the distribution. 75% of tracks with explicit content had popularity of no more than 65 while 75% of tracks without explicit content had popularity of no more than 42. This gives a slight hint of more explicit content being more popular. 
 
-Each of the above mentioned correlation observations are visualized in one chart below to fit linear trends. When we want to predict the value of an audio feature from the rest of audio features, these correlation plots could be very useful to understand the dependencies.  
+```{r}
+data_prc %>%
+  ggplot(aes(x = factor(explicit), y = popularity)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+  labs(x = "explicit content")
+```
+
+
+Some of the above mentioned correlation observations are visualized in one chart below to fit linear trends. Such correlation plots could be very useful to understand the importance of each feature in predicting a variable, for example popularity. 
+
+It seems that tracks with more energy, loudness, explicit content and less instrumentalness, acousticness tend to be more popular. After all, this conclusion is not very far from our earlier conclusion on popularity from the most popular tracks. 
 
 ```{r}
 p_acoustic <- data_prc %>%
@@ -419,9 +447,11 @@ grid.arrange(p_acoustic, p_energy, p_energy_loudness, p_valence_dance, nrow = 2)
 
 # Top 20 most productive artists
 
-Below chart shows artists by number of songs released on Spotify over 100 years. The shading represents time between release of their first track to last track. Top 4 most productive artists by a bigger margin have been active for < 30 years between 1920 to 1950. Higher number of active years may have some correlation with popularity as they could consistently releasing tracks over many years. **Ella Fitzgerald** is one of the early artists (from 1920s) whose last track was added in 1999 yet ranks pretty high on the popularity spectrum (73). **Frank Sinatra** has been active for most amount of years among the top 20 artists. 
+After visualizing trends and correlation of audio features, let's find out which artists have been the most productive on Spotify 100 years. 
 
-I could not resist but notice our beloved **Lata Mangeshkar ji's** name sitting nicely between **The Beatles** and **Queeen**
+The chart below shows top 20 artists that released the most number of songs on Spotify. The shading represents time between release of their first track and last track. Top 4 most productive artists by a bigger margin have been active for < 30 years between 1920 to 1950. Higher number of active years may have some correlation with popularity as they could consistently release tracks over many years and those tracks have been played more times in recent times. **Ella Fitzgerald** is one of the early artists (from 1920s) whose last track was added in 1999 yet ranks pretty high on the popularity spectrum (73). Quite incredible! **Frank Sinatra** has been active for most amount of years (80 years) among the top 20 artists. 
+
+I could not resist but notice our beloved **Lata Mangeshkar ji's** name sitting nicely between **The Beatles** and **Queeen**. 
 
 ```{r}
 ggplotly(
@@ -441,9 +471,11 @@ ggplotly(
 )
 ```
 
+Let's quickly go through audio features of the tracks by few well known artists. 
+
 ## Audio features of tracks by Lata Mangeshkar
 
-The most popular song of Lata Mangeshkar is **Aaj Phir Jeene Ki Tamanna Hai** released in 1965. Below chart shows that her tracks are on the high spectrum of acousticness (not surprising). Danceability is in the medium range. Her tracks on Spotify are mostly on the higher end of valence. Since Spotify might have limited tracks from this prolific artist, it might be best to no conclude anything in particular.  
+The most popular song of Lata Mangeshkar on Spotify is **Aaj Phir Jeene Ki Tamanna Hai** released in 1965. Below chart shows that her tracks are on the high spectrum of acousticness (not surprising). Danceability is in the medium range. Her tracks on Spotify are mostly on the higher end of valence. Since Spotify might have limited tracks from this prolific artist, it might be best to no conclude anything in particular.  
 
 ```{r}
 # data_prc %>%
@@ -473,6 +505,7 @@ ggplotly(
 
 Below is their anatomy of audio features. 
 
+**The Beatles** and **Queen** are not too different from each other in terms of their audio feature profile. **Coldplay** is high on loudness, medium on danceability, and low on valence. 
 
 ```{r}
 # data_prc %>%
@@ -524,25 +557,26 @@ ggplotly(scales_data_prc %>%
   labs(title = "Coldplay"))
 ```
 
+One question that came to mind while exploring the data is what can the most commonly used words across all tracks tell us about the core inspiration of music. 
 
 # Common words in track names
 
+Top 100 words from 100 years have **love** and **live** as the most common words in all track names after excluding commonly used words like _a/an/the/you/me/I/mixed/remaster_ etc. and years. I wonder which **live** - the verb or the noun - has been used the most commonly in track names. One could dissect the keyword **live** by the `liveness` audio feature to get a better distinction or it might require another blog on sentiment analysis. For now, let's wish it is live - the verb. 
 
-Top 100 words from 100 years have **Love** and **live** as the most common words in all track names after excluding commonly used words like _a/an/the/you/me/I/mixed/remaster_ etc. and years. I also wonder which **live** the verb or the now has been used the most commonly in track names. This might require an another blog on sentiment analysis. For now, let's wish it is live the verb. 
+As a side note, I also checked the most commonly used word by each year from 1990 and **love** appeared for most of the years. Love never looses!
 
-```{r , echo=FALSE, fig.cap="Top 100 words over 100 years", out.width = '100%'}
+```{r , echo=FALSE, fig.cap="Top 100 words over 100 years", out.width = '70%'}
 knitr::include_graphics("./imgs/word-cloud-100.JPG")
 ```
 
-It is quite interesting to see words related to work out as more common words in tracks in year 2020. 
+It is quite interesting to see words related to work out as more common words in tracks of 2020. 
 
 
-```{r , echo=FALSE, fig.cap="Top 100 words in 2020", out.width = '100%'}
+```{r , echo=FALSE, fig.cap="Top 100 words in 2020", out.width = '70%'}
 knitr::include_graphics("./imgs/word-cloud-100-2020.JPG")
 ```
 
-# Concluding remarks
 
-As you already might be feeling exhausted by going through the various slices of data and extracting some insights from them, such exploratory data analysis could become a never ending task without a clear end goal in mind. It is a common practice to perform such explorations before developing a predictive model in the field of data science. As we gained decent understanding of the data and their correlation with each other, one could build a model to predict popularity based on audio features. Moreover, with additional data on genres and artists, a recommendation engine could also be developed. 
+I Hope you had some of your musical and analytical curiosiry satisfied through this blog. As an avid listener of Indian classical and pop music, I got a good introduction to music and artists from other genres. I am certainly going to listen to tracks from all 20 most productive artists, specially **Ella Fitzgerald** and the most popular tracks ever recorded on Spotify **positions** and **Mood (feat. iann dior)**.   
 
-Music has always been a steady companion for me, especially in the pandemic. It moves me emotionally and physically and lets me live in a single state of mind - ecstacy. Hope you had some of your musical and analytical curiosiry satisfied through this blog.  
+Have a lovely day!
