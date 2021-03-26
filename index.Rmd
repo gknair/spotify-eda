@@ -29,7 +29,7 @@ data <- data %>%
   select(id, name, artists, year, release_date, everything())
 ```
 
-Catchphrases like  **Data is the new _____**, substituted with **gold/oil/currency**, are becoming quite prevalent in our day to day conversations and news feed. As per the [statista reoprt]([https://www.statista.com/statistics/871513/worldwide-data-created/) released in May 2020, 2021 is expected to create, capture, copy, and consume 74 zettabytes (1 zettabyte = trillion gigabytes) of data worldwide. This number is projected to almost double in just 3 years by 2024.
+The catchphrase **Data is the new currency** is becoming quite prevalent in our day to day conversations and news feed. As per the [statista reoprt]([https://www.statista.com/statistics/871513/worldwide-data-created/) released in May 2020, 2021 is expected to consume 74 zettabytes (1 zettabyte = trillion gigabytes) of data worldwide. This number is projected to almost double in just 3 years by 2024.
 
 ```{r , echo=FALSE, fig.cap="Statista report on data creation/consumption", out.width = '100%'}
 knitr::include_graphics("./imgs/statista-data-consumption.JPG")
