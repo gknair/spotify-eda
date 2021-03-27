@@ -44,7 +44,7 @@ Having said that, following data requires understanding the definition of data f
 Exploratory data analysis primarily enable stakeholders to take data driven decisions 
 and understand the interplays of various attributes that affect decisions.
 
-This post, I would be using exploratory data analysis to understand and learn about the worldwdie music interest using data from a global audio streaming service,Spotify. 
+This post, I would be using exploratory data analysis to understand to learn about the worldwide music interest using data from a global audio streaming service,Spotify. 
 Some of the questions of interest are:
 
 * how audio tracks on Spotify evolved over a century?
@@ -115,6 +115,7 @@ datatable(
   )
 ```
 
+Review( Rephrase a) validation check;  )
 
 After performing a validation check on the ideal state of this data (one record per track), certain issues appeared in terms of how it is curated. There were few records where all the fields were duplicated multiple times. Moreover, a track can be added to Spotify as a single entry and/or as a part of an album with separate ids for each addition. The same track can also be added multiple times with different release dates under different licenses and in different markets. Therefore, we need to overcome this issue in the data to not double count the statistics which can mislead our conclusions.
 
@@ -222,7 +223,7 @@ There are two most popular tracks released in 2020 that gained popularity of 96 
 
 Both the tracks are on the higher end of valence (happy mood), energy, and danceability. Both have explicit content present and have 0 instrumentalness. **Positions** is set in a major mode while the other is set in a minor mode. 
 
-Can we conclude from these two tracks that having high energy, danceability, and explicit content is the key to higher popularity? Probably we analyze further. 
+Can we conclude from these two tracks that having high energy, danceability, and explicit content is the key to higher popularity? Probably we can analyze further. 
 
  
 ```{r fig.dim=c(10,10)}
