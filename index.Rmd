@@ -35,16 +35,17 @@ The catchphrase **Data is the new currency** has become quite prevalent in our d
 knitr::include_graphics("./imgs/statista-data-consumption.JPG")
 ```
 
-The most fascinating thing about having data accessible on any subject ranging from the most absurd ones (squirrel census in Central Park) to the most arcane ones (dermatoscopic images) and sometimes to the most personal ones (Whatsapp chats/location history) is, that you can develop familiarity with an unfamiliar subject in the most organic way by analyzing them. Sometimes, you also stumble upon incredible insights despite having decent understanding of the subject. 
+Review: Add better transition from the previous paragraph before introducing the next section.
 
-With that said, you need to be careful about understanding the definition of data fields, the quality of the data and how you analyze/summarise it to not derive incorrect conclusions. It is equally important to have a fair idea on the questions you hope to answer through your data analysis once you know the attributes of data. Otherwise, you can get exhausted by the ways you can slice, summarise, and visualize the data and can possibly drown yourself in the vastness of it.  
+The fascinating thing about having data on subjects ranging from the absurd, squirrel census in Central Park, to the most arcane, dermatoscopic images, or even to the personal ,Whatsapp chats/location history, is that you can develop familiarity with an unfamiliar subject by following the data. Of course, you could also stumble upon new insights on familiar subjects too. 
 
-Many organizations perform exploratory data analyses for two main purposes. 
+Having said that, following data requires understanding the definition of data fields, the quality of the data and methodical analysis to arrive at the correct conclusions. To avoid getting lost in the state of an analysis paralysis, one should have a sense of the questions that need to be answered through data analysis. 
 
-1. to enable stakeholders take data driven decisions 
-2. to understand the interplays of various data fields that helps develop and validate better prediction models
+Exploratory data analysis primarily enable stakeholders to take data driven decisions 
+and understand the interplays of various attributes that affect decisions.
 
-My purpose for today's exploratory data analysis is to understand
+This post, I would be using exploratory data analysis to understand and learn about the worldwdie music interest using data from a global audio streaming service,Spotify. 
+Some of the questions of interest are:
 
 * how audio tracks on Spotify evolved over a century?
 * what are the features associated with a particular track and their impact on popularity of a track?
@@ -73,6 +74,8 @@ datatable(
 
 
 ## Data types
+
+Review: Explain, type of variable before, using them. In general , refrain from using data fields or type of fields etc before introducing the concept. The audience might not know about this.
 
 We have few categorical fields in the data like `id`, `name`, `artists`, `release_date`, and `key` that can take finite number of values. We also have many numerical fields, mostly the audio features, like `acousticness`, `danceability` etc., that can take infinite number of values within a defined range. Notice, that two fields - `mode` and `explicit` - are logical/binary in nature. 
 
